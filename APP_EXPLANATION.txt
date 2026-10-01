@@ -1,0 +1,76 @@
+WebhookRelay — Reliable Event Delivery System
+=============================================
+
+What it is
+----------
+WebhookRelay is a lightweight, production-style webhook delivery platform.
+Users register HTTP endpoints and subscribe them to specific event types.
+When an event is published, the system queues it, delivers it asynchronously
+to all matching endpoints, retries on failure with exponential backoff,
+logs every attempt, and provides a real-time dashboard to observe the entire
+lifecycle.
+
+Core Problem Solved
+-------------------
+External systems (payment gateways, e-commerce platforms, CI systems, etc.)
+need a reliable way to notify other services. A single HTTP POST is not enough —
+endpoints go down, return 5xx, time out, or rate-limit. WebhookRelay handles
+queuing, concurrent delivery, intelligent retries, permanent failure tracking,
+and full observability.
+
+Key Features
+------------
+• Endpoint Registration
+  - Register any public URL
+  - Subscribe to one or more event types
+  - Optional secret for HMAC signature verification
+  - Enable / disable endpoints without deleting history
+
+• Event Publishing
+  - Simple JSON API: POST /events with event type + payload
+  - Automatic fan-out to all matching active endpoints
+  - Instant queuing (non-blocking)
+
+• Reliable Delivery Engine
+  - In-memory channel queue (v1) with worker pool
+  - Configurable concurrency limit (no unbounded goroutines)
+  - Exponential backoff retries (1s → 2s → 4s → 8s …)
+  - Configurable max attempts and which status codes are retryable
+  - Circuit-breaker style protection (optional)
+  - Dead-letter handling after max retries
+
+• Delivery Logging & Observability
+  - Every attempt recorded: timestamp, status code, latency, error message
+  - Full timeline view per event
+  - Live status badges (Pending → Delivering → Retrying → Delivered / Failed)
+  - Aggregate success-rate and latency metrics
+
+• Security
+  - HMAC-SHA256 signing of every outgoing webhook (X-Webhook-Signature header)
+  - API-key protection on management endpoints (optional but recommended)
+
+• Operational Tools
+  - One-click “Send Test Event”
+  - Controllable mock receiver (success / 500 / timeout / 429 / 4xx)
+  - Manual Replay of any past event
+  - Dead Letter Queue view with payload inspection
+
+• Dashboard
+  - Real-time updating event feed
+  - Per-endpoint health indicators
+  - Detailed delivery timeline
+  - Simple success-rate chart
+
+Tech Stack
+----------
+Backend  : Go (stdlib + chi/mux, worker pool, exponential backoff)
+Data     : PostgreSQL using supabase
+Frontend : React + Vite + Tailwind CSS + Recharts (or Chart.js)
+Infra    : Docker Compose for local demo
+
+Why this project is strong
+--------------------------
+It demonstrates the exact class of problems faced when integrating with
+unreliable external systems at scale: queuing, concurrency control, retries,
+observability, and graceful degradation — all while remaining simple enough
+to build and demo in roughly one focused week.

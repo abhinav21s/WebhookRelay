@@ -1,0 +1,90 @@
+You are an expert full-stack engineer. Build a complete, production-quality
+application called "WebhookRelay" — a reliable webhook / event delivery system.
+
+TECH STACK
+----------
+Backend: Go 1.22+
+  - HTTP router: chi or gorilla/mux
+  - PostgreSQL for endpoints & subscriptions (use supabase) for delivery attempt logs (official mongo-go-driver)
+  - Worker pool with goroutines + buffered channel queue
+  - Exponential backoff retry logic
+  - HMAC-SHA256 signing of outgoing webhooks
+
+Frontend: React 18 + Vite + TypeScript
+  - Tailwind CSS for styling
+  - React Router
+  - TanStack Query (React Query) for data fetching + polling
+  - Recharts or Chart.js for the success-rate chart
+  - Dark theme following the UI design specification below
+
+CORE REQUIREMENTS
+-----------------
+1. REST API
+   POST   /api/webhooks                 → register endpoint
+   GET    /api/webhooks                 → list endpoints
+   GET    /api/webhooks/:id             → get endpoint
+   PATCH  /api/webhooks/:id             → update / enable / disable
+   DELETE /api/webhooks/:id             → soft delete
+
+   POST   /api/events                   → publish event
+   GET    /api/events                   → list recent events
+   GET    /api/events/:id               → event detail + delivery timeline
+   POST   /api/events/:id/replay        → re-queue event for delivery
+
+   GET    /api/deliveries?event_id=...  → delivery attempts
+   GET    /api/metrics                  → basic success rate / latency stats
+
+2. Delivery Engine
+   - When an event is published, find all matching active endpoints and
+     enqueue one delivery job per endpoint.
+   - Worker pool (configurable size, default 10) pulls from a buffered channel.
+   - Each delivery:
+     • Signs the payload with the endpoint’s secret (HMAC-SHA256)
+     • Sends HTTP POST with proper headers (Content-Type, X-Webhook-Signature,
+       X-Webhook-ID, X-Webhook-Timestamp)
+     • Records attempt (timestamp, status code, latency, error) in MongoDB
+     • On failure (timeout, 5xx, network error) schedules retry with
+       exponential backoff (base 1s, multiplier 2, max delay 30s, max attempts 5)
+     • After max attempts → mark as permanently failed (Dead Letter)
+
+3. Controllable Mock Receiver (for demos)
+   - Simple internal route or separate small server that can be told to:
+     succeed, return 500, sleep longer than timeout, return 429, return 400.
+   - Dashboard must be able to switch the failure mode and immediately
+     send a test event so the interviewer can watch retries happen live.
+
+4. Frontend Dashboard (must match the UI design)
+   - Dark theme, slate palette, Inter + mono fonts
+   - Top navigation + main content area
+   - Pages: Overview, Endpoints, Endpoint Detail, Events, Event Detail, Dead Letters
+   - Live status badges that update via polling (every 2–3 seconds)
+   - Beautiful vertical timeline on Event Detail page showing every attempt
+   - “Send Test Event” + failure-mode selector on Endpoint Detail
+   - One-click Replay button
+   - Simple success-rate chart on Overview
+
+DATA MODELS (simplified)
+------------------------
+Postgre supabase:
+  endpoints (id, name, url, secret, event_types[], is_active, created_at, ...)
+  (subscriptions can be embedded as array or separate table)
+
+Postgres supabase
+  delivery_attempts (
+    event_id, endpoint_id, attempt_number,
+    status_code, latency_ms, error_message, created_at
+  )
+
+EXTRA QUALITY REQUIREMENTS
+--------------------------
+• Clean project structure (cmd/, internal/, web/ or frontend/)
+• Docker Compose that starts Postgres + Mongo + API
+• Environment-based configuration
+• Structured logging
+• Graceful shutdown of workers
+• Basic input validation and proper HTTP status codes
+• README with architecture overview and how to run the live demo
+
+Deliver a complete, runnable codebase. Prioritize the delivery engine,
+retry logic, timeline UI, and the live “make it fail → watch it retry”
+demo experience above everything else.

@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+@layer utilities {
+  .text-muted {
+    color: #94a3b8;
+  }
+  
+  .bg-surface {
+    background-color: #1e293b;
+  }
+  
+  .border-default {
+    border-color: #334155;
+  }
+}

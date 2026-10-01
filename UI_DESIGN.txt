@@ -1,0 +1,129 @@
+WebhookRelay — UI / UX Design Specification
+==========================================
+
+Design Philosophy
+-----------------
+Clean, dense, operational dashboard — think Stripe Dashboard + Linear +
+GitHub Actions run view. Prioritize information density and real-time feedback
+over decorative elements. Every screen should answer “what is happening right now?”
+and “what failed and why?” within 3 seconds.
+
+Theme & Visual Language
+-----------------------
+• Color Palette (dark-first)
+  - Background:      #0f172a (slate-900)
+  - Surface:         #1e293b (slate-800)
+  - Border:          #334155 (slate-700)
+  - Primary:         #3b82f6 (blue-500) — actions, active states
+  - Success:         #22c55e (green-500)
+  - Warning:         #f59e0b (amber-500)
+  - Danger:          #ef4444 (red-500)
+  - Text primary:    #f8fafc (slate-50)
+  - Text secondary:  #94a3b8 (slate-400)
+  - Muted:           #64748b (slate-500)
+
+• Typography
+  - Font: Inter or system-ui
+  - Headings: 600–700 weight
+  - Body: 400
+  - Mono for IDs, timestamps, status codes, payloads: JetBrains Mono or Fira Code
+
+• Spacing & Layout
+  - Consistent 4 / 8 / 12 / 16 / 24 px scale
+  - Cards with subtle border + very light shadow
+  - Generous padding inside cards (20–24 px)
+  - Tight table rows for density
+
+Overall Layout Structure
+------------------------
+┌─────────────────────────────────────────────────────────────┐
+│ Top Navigation Bar (fixed)                                  │
+│ Logo | Endpoints | Events | Dead Letters | Metrics | User  │
+└─────────────────────────────────────────────────────────────┘
+┌──────────────┬──────────────────────────────────────────────┐
+│              │                                              │
+│  Sidebar     │  Main Content Area                           │
+│  (optional)  │  - Page header + primary actions             │
+│              │  - Filters / search                          │
+│              │  - Data tables / timelines / charts          │
+│              │                                              │
+└──────────────┴──────────────────────────────────────────────┘
+
+Key Screens & Components
+------------------------
+
+1. Dashboard / Overview
+   - Top row of 4 metric cards:
+     Total Events (24h) | Success Rate | Avg Latency | Active Endpoints
+   - Success-rate line chart (last 24h)
+   - Recent Events table (last 20) with live status badges
+   - Endpoint Health strip (green/yellow/red dots)
+
+2. Endpoints List
+   - Table: Name | URL | Event Types | Status | Success Rate | Last Delivery | Actions
+   - “New Endpoint” primary button (top right)
+   - Status badge: Active / Disabled / Circuit Open
+   - Quick health indicator (green/yellow/red)
+
+3. Endpoint Detail
+   - Header: URL + secret (masked) + Enable/Disable toggle
+   - Tabs: Overview | Deliveries | Settings
+   - “Send Test Event” button + Failure Mode selector (Success / 500 / Timeout / 429 / 4xx)
+   - Recent deliveries for this endpoint
+   - Edit event-type subscriptions
+
+4. Events List
+   - Filterable table: Event ID | Type | Received At | Status | Attempts | Latency
+   - Status badges with live updates (Polling every 2s is fine)
+   - Click row → Event Detail
+
+5. Event Detail (the star of the demo)
+   - Header: Event type + ID + overall status
+   - Payload JSON viewer (collapsible, syntax highlighted)
+   - Vertical Delivery Timeline (most important component):
+     ┌────────────────────────────────────────────────────┐
+     │ ● Attempt 1  14:03:00  Failed (timeout)   5.02s   │
+     │ ● Attempt 2  14:03:01  Failed (500)       187ms   │
+     │ ● Attempt 3  14:03:03  Succeeded (200)    142ms   │
+     └────────────────────────────────────────────────────┘
+   - “Replay Event” button
+   - List of all target endpoints and their individual outcomes
+
+6. Dead Letter Queue
+   - Table of permanently failed events
+   - Last error message visible
+   - One-click Replay + Inspect payload
+
+Status Badge Design
+-------------------
+• Pending     → gray
+• Delivering  → blue (pulsing)
+• Retrying    → amber (shows “Retrying (2/5)”)
+• Delivered   → green
+• Failed      → red
+• Dead Letter → dark red / purple
+
+Micro-interactions
+------------------
+• Status badges update without full page reload (poll or light WebSocket)
+• Timeline items animate in when new attempts appear
+• Toast notifications for “Test event sent”, “Replay queued”, etc.
+• Skeleton loaders on initial data fetch
+• Empty states with clear CTAs (“No endpoints yet — create your first one”)
+
+Responsive Behavior
+-------------------
+• Desktop-first (dashboard is primarily used on desktop)
+• Collapse sidebar on < 1024 px
+• Tables become card lists on mobile
+• Keep primary actions reachable
+
+Accessibility
+-------------
+• Sufficient contrast (WCAG AA)
+• Focus rings on all interactive elements
+• ARIA labels on status badges and timeline
+• Keyboard navigable tables and modals
+
+This design prioritizes clarity, density, and the ability to demonstrate
+retry behavior live — the strongest part of the project.

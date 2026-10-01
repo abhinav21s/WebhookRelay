@@ -1,0 +1,22 @@
+# Note: This docker-compose is for local development reference
+# The actual setup uses Supabase cloud service
+# For local Supabase, see: https://supabase.com/docs/guides/self-hosting/docker
+
+version: '3.8'
+
+services:
+  # Mock receiver for testing (optional)
+  mock:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock
+    ports:
+      - "9090:9090"
+    environment:
+      - MOCK_RECEIVER_PORT=9090
+    restart: unless-stopped
+
+# For production, configure Supabase connection via environment variables:
+# SUPABASE_URL=https://your-project.supabase.co
+# SUPABASE_KEY=your-anon-key
+# SUPABASE_DB_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/postgres
