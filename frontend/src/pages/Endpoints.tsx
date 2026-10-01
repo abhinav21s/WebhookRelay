@@ -156,15 +156,38 @@ function CreateEndpointModal({
     event_types: '',
     secret: '',
   })
+  const [error, setError] = useState<string>('')
 
   const createMutation = useMutation({
     mutationFn: (data: CreateEndpointRequest) => createEndpoint(data),
-    onSuccess,
+    onSuccess: () => {
+      console.log('✅ Endpoint created successfully')
+      setError('')
+      onSuccess()
+    },
+    onError: (error: any) => {
+      console.error('❌ Create endpoint error:', error)
+      setError(error.message || 'Failed to create endpoint. Check console for details.')
+    },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+    
     const eventTypes = formData.event_types.split(',').map((t) => t.trim()).filter(Boolean)
+    
+    if (eventTypes.length === 0) {
+      setError('Please enter at least one event type')
+      return
+    }
+    
+    console.log('Creating endpoint with data:', {
+      name: formData.name,
+      url: formData.url,
+      event_types: eventTypes,
+    })
+    
     createMutation.mutate({
       name: formData.name,
       url: formData.url,
@@ -229,11 +252,33 @@ function CreateEndpointModal({
               placeholder="Leave empty to auto-generate"
             />
           </div>
+          
+          {error && (
+            <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+          
+          {createMutation.isPending && (
+            <div className="text-blue-400 text-sm text-center">
+              Creating endpoint...
+            </div>
+          )}
+          
           <div className="flex gap-3 mt-6">
-            <Button type="submit" className="flex-1">
-              Create
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? 'Creating...' : 'Create'}
             </Button>
-            <Button variant="secondary" onClick={onClose} className="flex-1">
+            <Button 
+              variant="secondary" 
+              onClick={onClose} 
+              className="flex-1"
+              disabled={createMutation.isPending}
+            >
               Cancel
             </Button>
           </div>

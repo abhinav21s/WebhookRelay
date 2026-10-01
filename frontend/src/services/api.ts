@@ -12,9 +12,15 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 // Endpoints
 export async function fetchEndpoints(): Promise<Endpoint[]> {
+  console.log('📡 Fetching endpoints from:', `${API_URL}/api/webhooks`)
   const response = await fetch(`${API_URL}/api/webhooks`)
-  if (!response.ok) throw new Error('Failed to fetch endpoints')
-  return response.json()
+  if (!response.ok) {
+    console.error('❌ Failed to fetch endpoints:', response.status, response.statusText)
+    throw new Error(`Failed to fetch endpoints: ${response.statusText}`)
+  }
+  const data = await response.json()
+  console.log('✅ Fetched endpoints:', data.length)
+  return data
 }
 
 export async function fetchEndpoint(id: string): Promise<Endpoint> {
@@ -24,13 +30,20 @@ export async function fetchEndpoint(id: string): Promise<Endpoint> {
 }
 
 export async function createEndpoint(data: CreateEndpointRequest): Promise<Endpoint> {
+  console.log('📝 Creating endpoint:', data)
   const response = await fetch(`${API_URL}/api/webhooks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!response.ok) throw new Error('Failed to create endpoint')
-  return response.json()
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('❌ Failed to create endpoint:', response.status, errorText)
+    throw new Error('Failed to create endpoint')
+  }
+  const result = await response.json()
+  console.log('✅ Created endpoint:', result)
+  return result
 }
 
 export async function updateEndpoint(id: string, data: Partial<Endpoint>): Promise<void> {

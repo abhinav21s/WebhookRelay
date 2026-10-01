@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -26,9 +27,12 @@ func NewWebhookHandler(db *sql.DB) *WebhookHandler {
 func (h *WebhookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateEndpointRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding request: %v", err)
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
+
+	log.Printf("Creating endpoint: name=%s, url=%s, event_types=%v", req.Name, req.URL, req.EventTypes)
 
 	// Validate
 	if req.Name == "" || req.URL == "" || len(req.EventTypes) == 0 {
@@ -63,10 +67,12 @@ func (h *WebhookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) 
 		endpoint.CreatedAt, endpoint.UpdatedAt,
 	)
 	if err != nil {
+		log.Printf("Error inserting endpoint: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create endpoint")
 		return
 	}
 
+	log.Printf("✅ Successfully created endpoint with ID: %s", endpoint.ID)
 	respondJSON(w, http.StatusCreated, endpoint)
 }
 
@@ -79,13 +85,16 @@ func (h *WebhookHandler) ListEndpoints(w http.ResponseWriter, r *http.Request) {
 	`
 	rows, err := h.db.Query(query)
 	if err != nil {
+		log.Printf("Error querying endpoints: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to fetch endpoints")
 		return
 	}
 	defer rows.Close()
 
 	endpoints := []*models.Endpoint{}
+	rowCount := 0
 	for rows.Next() {
+		rowCount++
 		var ep models.Endpoint
 		err := rows.Scan(
 			&ep.ID, &ep.Name, &ep.URL, &ep.Secret,
@@ -93,11 +102,13 @@ func (h *WebhookHandler) ListEndpoints(w http.ResponseWriter, r *http.Request) {
 			&ep.CreatedAt, &ep.UpdatedAt,
 		)
 		if err != nil {
+			log.Printf("Error scanning row %d: %v", rowCount, err)
 			continue
 		}
 		endpoints = append(endpoints, &ep)
 	}
 
+	log.Printf("Found %d rows, returning %d endpoints", rowCount, len(endpoints))
 	respondJSON(w, http.StatusOK, endpoints)
 }
 
