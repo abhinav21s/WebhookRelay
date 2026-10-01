@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"github.com/yourusername/webhookrelay/internal/delivery"
 	"github.com/yourusername/webhookrelay/internal/models"
 )
@@ -251,7 +250,7 @@ func (h *EventHandler) findMatchingEndpoints(eventType string) ([]*models.Endpoi
 		var ep models.Endpoint
 		err := rows.Scan(
 			&ep.ID, &ep.Name, &ep.URL, &ep.Secret,
-			pq.Array(&ep.EventTypes), &ep.IsActive,
+			&ep.EventTypes, &ep.IsActive,
 			&ep.CreatedAt, &ep.UpdatedAt,
 		)
 		if err != nil {

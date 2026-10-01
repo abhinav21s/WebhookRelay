@@ -6,19 +6,131 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
+
+// StringArray is a custom type for PostgreSQL text[] arrays
+type StringArray []string
+
+// Scan implements the sql.Scanner interface for StringArray
+func (a *StringArray) Scan(src interface{}) error {
+	if src == nil {
+		*a = []string{}
+		return nil
+	}
+	
+	switch v := src.(type) {
+	case []byte:
+		// PostgreSQL returns arrays as: {value1,value2,value3}
+		return a.parsePostgresArray(string(v))
+	case string:
+		// Handle string format
+		return a.parsePostgresArray(v)
+	case []interface{}:
+		// Handle if it comes as a slice of interfaces
+		*a = make([]string, len(v))
+		for i, val := range v {
+			if str, ok := val.(string); ok {
+				(*a)[i] = str
+			}
+		}
+		return nil
+	}
+	
+	return nil
+}
+
+// parsePostgresArray parses PostgreSQL array format: {value1,value2}
+func (a *StringArray) parsePostgresArray(s string) error {
+	// Remove surrounding braces
+	if len(s) < 2 {
+		*a = []string{}
+		return nil
+	}
+	
+	if s[0] == '{' && s[len(s)-1] == '}' {
+		s = s[1 : len(s)-1]
+	}
+	
+	if s == "" {
+		*a = []string{}
+		return nil
+	}
+	
+	// Split by comma (simple parsing - doesn't handle quoted commas)
+	parts := []string{}
+	current := ""
+	inQuotes := false
+	
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		
+		if c == '"' {
+			inQuotes = !inQuotes
+			continue
+		}
+		
+		if c == ',' && !inQuotes {
+			if current != "" {
+				parts = append(parts, current)
+				current = ""
+			}
+			continue
+		}
+		
+		current += string(c)
+	}
+	
+	if current != "" {
+		parts = append(parts, current)
+	}
+	
+	*a = parts
+	return nil
+}
+
+// Value implements the driver.Valuer interface for StringArray
+func (a StringArray) Value() (driver.Value, error) {
+	if a == nil || len(a) == 0 {
+		return "{}", nil
+	}
+	
+	// Return as PostgreSQL array format: {value1,value2}
+	result := "{"
+	for i, s := range a {
+		if i > 0 {
+			result += ","
+		}
+		// Quote values that contain special characters
+		if containsSpecialChars(s) {
+			result += `"` + s + `"`
+		} else {
+			result += s
+		}
+	}
+	result += "}"
+	
+	return result, nil
+}
+
+func containsSpecialChars(s string) bool {
+	for _, c := range s {
+		if c == ',' || c == '{' || c == '}' || c == '"' || c == '\\' || c == ' ' {
+			return true
+		}
+	}
+	return false
+}
 
 // Endpoint represents a webhook endpoint
 type Endpoint struct {
-	ID         uuid.UUID      `json:"id"`
-	Name       string         `json:"name"`
-	URL        string         `json:"url"`
-	Secret     string         `json:"secret"`
-	EventTypes pq.StringArray `json:"event_types"`
-	IsActive   bool           `json:"is_active"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
+	ID         uuid.UUID   `json:"id"`
+	Name       string      `json:"name"`
+	URL        string      `json:"url"`
+	Secret     string      `json:"secret"`
+	EventTypes StringArray `json:"event_types"`
+	IsActive   bool        `json:"is_active"`
+	CreatedAt  time.Time   `json:"created_at"`
+	UpdatedAt  time.Time   `json:"updated_at"`
 }
 
 // Event represents a webhook event

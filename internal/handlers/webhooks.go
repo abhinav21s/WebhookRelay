@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"github.com/yourusername/webhookrelay/internal/models"
 )
 
@@ -63,7 +62,7 @@ func (h *WebhookHandler) CreateEndpoint(w http.ResponseWriter, r *http.Request) 
 	`
 	_, err := h.db.Exec(query,
 		endpoint.ID, endpoint.Name, endpoint.URL, endpoint.Secret,
-		pq.Array(endpoint.EventTypes), endpoint.IsActive,
+		endpoint.EventTypes, endpoint.IsActive,
 		endpoint.CreatedAt, endpoint.UpdatedAt,
 	)
 	if err != nil {
@@ -98,7 +97,7 @@ func (h *WebhookHandler) ListEndpoints(w http.ResponseWriter, r *http.Request) {
 		var ep models.Endpoint
 		err := rows.Scan(
 			&ep.ID, &ep.Name, &ep.URL, &ep.Secret,
-			pq.Array(&ep.EventTypes), &ep.IsActive,
+			&ep.EventTypes, &ep.IsActive,
 			&ep.CreatedAt, &ep.UpdatedAt,
 		)
 		if err != nil {
@@ -124,7 +123,7 @@ func (h *WebhookHandler) GetEndpoint(w http.ResponseWriter, r *http.Request) {
 	var ep models.Endpoint
 	err := h.db.QueryRow(query, id).Scan(
 		&ep.ID, &ep.Name, &ep.URL, &ep.Secret,
-		pq.Array(&ep.EventTypes), &ep.IsActive,
+		&ep.EventTypes, &ep.IsActive,
 		&ep.CreatedAt, &ep.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -166,7 +165,7 @@ func (h *WebhookHandler) UpdateEndpoint(w http.ResponseWriter, r *http.Request) 
 	}
 	if req.EventTypes != nil {
 		query += ", event_types = $" + string(rune(argCount+'0'))
-		args = append(args, pq.Array(req.EventTypes))
+		args = append(args, models.StringArray(req.EventTypes))
 		argCount++
 	}
 	if req.IsActive != nil {
